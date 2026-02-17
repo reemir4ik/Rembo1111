@@ -430,14 +430,19 @@ function hexToRgb(hex) {
 
 function scaleIframe(iframe, w) { iframe.style.transform = `scale(${w/1080})`; }
 
-async function callClaude(prompt, maxTokens=1200) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:maxTokens, messages:[{role:'user',content:prompt}] })
+const AI_ENDPOINT = "https://aibuyer-ai.reemir4ik.workers.dev/generate";
+
+async function callGPT(payload) {
+  const r = await fetch(AI_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
   const d = await r.json();
-  return d.content?.map(b=>b.text||'').join('')||'';
+  if (!r.ok) throw new Error(d?.error || `HTTP ${r.status}`);
+
+  return d.copies;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -471,8 +476,8 @@ JSON без markdown:
 
   let copies;
   try {
-    const raw = await callClaude(prompt);
-    copies = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    copies = await callGPT({ brand, offer, utp, audience, goal, tone: state.tone });
+
   } catch(e) {
     showError('⚠ Ошибка: ' + e.message);
     btn.disabled = false; return;
