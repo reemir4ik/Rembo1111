@@ -1,111 +1,847 @@
-export default {
-  async fetch(request, env) {
-    const ORIGIN = "https://reemir4ik.github.io";
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIBUYER — Creative Engine v5.0</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+:root {
+  --orange:#FF4500; --bg:#0a0a0a; --card:#111; --border:#1e1e1e;
+  --text:#e8e8e8; --muted:#555; --label:#666;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;min-height:100vh}
 
-    // CORS preflight
-    if (request.method === "OPTIONS") {
-      return new Response(null, { headers: cors(ORIGIN) });
-    }
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);background:#0d0d0d}
+.logo{font-weight:900;font-size:22px;letter-spacing:2px;text-transform:uppercase}
+.logo span{color:var(--orange)}
+.badge{background:var(--orange);color:#fff;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;padding:6px 14px}
 
-    const url = new URL(request.url);
+.stats{display:flex;gap:40px;padding:28px 32px 0}
+.stat-num{font-family:'Space Mono',monospace;font-size:36px;color:var(--orange);font-weight:700;line-height:1}
+.stat-label{font-size:12px;color:var(--label);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
 
-    if (url.pathname !== "/generate") {
-      return new Response("Not found", {
-        status: 404,
-        headers: cors(ORIGIN),
-      });
-    }
+.container{max-width:1200px;margin:0 auto;padding:28px 32px 80px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+.form-group{display:flex;flex-direction:column;gap:8px}
+.form-group.full{grid-column:1/-1}
+label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--label);text-transform:uppercase}
+input,textarea{background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:17px;padding:14px 16px;outline:none;transition:border-color .2s;width:100%;resize:none}
+input:focus,textarea:focus{border-color:var(--orange)}
+textarea{min-height:80px}
 
-    if (request.method !== "POST") {
-      return new Response("Method not allowed", {
-        status: 405,
-        headers: cors(ORIGIN),
-      });
-    }
+.section-title{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--label);text-transform:uppercase;margin-top:28px;margin-bottom:12px}
 
-    try {
-      const body = await request.json();
-      const { brand, offer, utp, audience, goal, tone } = body;
+/* TONE */
+.tone-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tone-btn{background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;padding:14px 10px;cursor:pointer;text-align:center;transition:all .15s;text-transform:uppercase;letter-spacing:.5px}
+.tone-btn:hover{border-color:var(--orange);color:var(--orange)}
+.tone-btn.active{background:var(--orange);border-color:var(--orange);color:#fff}
 
-      if (!offer) {
-        return json({ error: "Offer required" }, 400);
-      }
+/* DESIGN TEMPLATES */
+.tmpl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.tmpl-btn{background:var(--card);border:2px solid var(--border);cursor:pointer;transition:all .15s;overflow:hidden;display:flex;flex-direction:column}
+.tmpl-btn:hover{border-color:#444}
+.tmpl-btn.active{border-color:var(--orange)}
+.tmpl-thumb{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;overflow:hidden}
+.tmpl-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--label);padding:8px 10px;text-transform:uppercase;text-align:center;border-top:1px solid var(--border)}
+.tmpl-btn.active .tmpl-label{color:var(--orange)}
 
-      const prompt = `
-Ты копирайтер для рекламных баннеров (финансы/крипто).
+/* COLOR PALETTE */
+.palette-section{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:0}
+.palette-group{display:flex;flex-direction:column;gap:10px}
+.palette-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--label);text-transform:uppercase}
+.color-row{display:flex;align-items:center;gap:12px}
+.color-input-wrap{position:relative;width:48px;height:48px;border:1px solid var(--border);cursor:pointer;overflow:hidden;transition:border-color .2s}
+.color-input-wrap:hover{border-color:var(--orange)}
+.color-input-wrap input[type=color]{position:absolute;inset:-8px;width:calc(100%+16px);height:calc(100%+16px);border:none;cursor:pointer;padding:0;background:none}
+.color-hex{font-family:'Space Mono',monospace;font-size:12px;color:var(--text);background:var(--card);border:1px solid var(--border);padding:8px 12px;outline:none;width:110px;text-transform:uppercase}
+.color-hex:focus{border-color:var(--orange)}
 
-Тон: ${tone}
+.preset-colors{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.preset-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .15s;flex-shrink:0}
+.preset-dot:hover{transform:scale(1.2)}
+.preset-dot.active{border-color:#fff}
 
-Бренд: ${brand}
-Оффер: ${offer}
-УТП: ${utp}
-ЦА: ${audience}
-Цель: ${goal}
+/* STATUS */
+.status-box{margin-top:20px;padding:14px 18px;font-family:'Space Mono',monospace;font-size:12px;display:none}
+.status-box.error{background:#1a0800;border:1px solid var(--orange);color:#ff7043;display:flex;align-items:center;gap:8px}
+.status-box.loading{background:#111;border:1px solid var(--border);color:var(--muted);display:flex;align-items:center;gap:12px}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-Создай 3 разных варианта.
+.gen-btn{width:100%;margin-top:20px;background:var(--orange);color:#fff;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:22px;letter-spacing:3px;text-transform:uppercase;padding:22px;cursor:pointer;transition:background .2s}
+.gen-btn:hover{background:#ff5722}
+.gen-btn:disabled{background:#333;color:#555;cursor:not-allowed}
 
-Формат строго JSON:
-[
- {
-  "headline": "",
-  "sub": "",
-  "b1": "",
-  "b2": "",
-  "b3": "",
-  "cta": ""
- }
-]
-`.trim();
+/* RESULTS */
+.results{margin-top:40px;display:none}
+.results.visible{display:block}
+.results-header{font-family:'Space Mono',monospace;font-size:11px;color:var(--label);letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:28px}
+.creatives-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.creative-card{background:var(--card);border:1px solid var(--border);overflow:hidden;animation:fadeUp .4s ease both}
+.creative-card:nth-child(1){animation-delay:0s}
+.creative-card:nth-child(2){animation-delay:.1s}
+.creative-card:nth-child(3){animation-delay:.2s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.card-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--orange);letter-spacing:2px;padding:14px 16px 0}
+.tmpl-tag{font-family:'Space Mono',monospace;font-size:9px;color:var(--muted);padding:4px 16px 0;letter-spacing:1px}
 
-      const ai = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4.1-mini",
-          input: prompt,
-          max_output_tokens: 800
-        }),
-      });
+.banner-preview{width:100%;aspect-ratio:1/1;position:relative;overflow:hidden;background:#0d0d0d;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:8px}
+.banner-preview iframe{position:absolute;top:0;left:0;width:1080px;height:1080px;border:none;pointer-events:none;transform-origin:top left}
 
-      const data = await ai.json();
+.card-copy{padding:14px 16px}
+.copy-headline{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;text-transform:uppercase}
+.copy-sub{font-size:13px;color:#888;margin-bottom:12px}
+.card-actions{display:flex;gap:8px}
+.action-btn{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:8px;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.action-btn:hover{border-color:var(--orange);color:var(--orange)}
+.action-btn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.action-btn.copied{border-color:#4caf50;color:#4caf50}
 
-      if (!ai.ok) {
-        return json({ error: "OpenAI error", details: data }, 500);
-      }
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#111;border:1px solid var(--border);width:640px;max-height:95vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-title{font-family:'Space Mono',monospace;font-size:11px;color:var(--orange);letter-spacing:2px;text-transform:uppercase}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
+.modal-body{padding:20px}
+.modal-banner-wrap{width:100%;aspect-ratio:1/1;overflow:hidden;border:1px solid var(--border);position:relative}
+.modal-banner-wrap iframe{position:absolute;top:0;left:0;width:1080px;height:1080px;border:none;transform-origin:top left}
+.modal-text{margin-top:16px;background:var(--bg);border:1px solid var(--border);padding:14px;font-size:14px;line-height:1.7;color:#ccc;white-space:pre-wrap}
+.modal-actions{display:flex;gap:10px;margin-top:14px}
+</style>
+</head>
+<body>
 
-      let parsed;
+<header>
+  <div class="logo"><span>AI</span>BUYER</div>
+  <div class="badge">Creative Engine v5.0</div>
+</header>
 
-      try {
-        parsed = JSON.parse(data.output_text);
-      } catch {
-        return json({ error: "Invalid AI JSON", raw: data.output_text }, 500);
-      }
+<div class="container">
+  <div class="stats">
+    <div><div class="stat-num" id="genCount">0</div><div class="stat-label">Генераций</div></div>
+    <div><div class="stat-num" id="creoCount">0</div><div class="stat-label">Креативов</div></div>
+  </div>
 
-      return json({ copies: parsed }, 200);
+  <!-- FORM -->
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Ниша / Тематика</label>
+      <input type="text" id="niche" value="Крипто и инвестиции">
+    </div>
+    <div class="form-group">
+      <label>Название бренда</label>
+      <input type="text" id="brand" value="USDT Exchange">
+    </div>
+    <div class="form-group full">
+      <label>Оффер</label>
+      <textarea id="offer">Онлайн обмен usdt на $, курьеры, счета, sepa и swift переводы</textarea>
+    </div>
+    <div class="form-group">
+      <label>ЦА</label>
+      <input type="text" id="audience" value="20-55">
+    </div>
+    <div class="form-group">
+      <label>УТП / Главный крючок</label>
+      <input type="text" id="utp" value="низкие комиссии, курьеры по всему миру">
+    </div>
+    <div class="form-group">
+      <label>Контакт (Telegram / сайт)</label>
+      <input type="text" id="contact" value="@manager">
+    </div>
+    <div class="form-group">
+      <label>Цель (CTA)</label>
+      <input type="text" id="goal" value="Регистрация">
+    </div>
+  </div>
 
-    } catch (err) {
-      return json({ error: err.message }, 500);
-    }
+  <!-- TONE -->
+  <div class="section-title">Тон коммуникации</div>
+  <div class="tone-grid">
+    <button class="tone-btn" onclick="sel('.tone-btn',this,'tone','🔥 Провокация')">🔥 Провокация</button>
+    <button class="tone-btn" onclick="sel('.tone-btn',this,'tone','😱 Эмоции')">😱 Эмоции</button>
+    <button class="tone-btn" onclick="sel('.tone-btn',this,'tone','😰 FOMO')">😰 FOMO</button>
+    <button class="tone-btn" onclick="sel('.tone-btn',this,'tone','📽️ История')">📽️ История</button>
+    <button class="tone-btn" onclick="sel('.tone-btn',this,'tone','⭐ Соц. доказательство')">⭐ Соц. доказательство</button>
+    <button class="tone-btn active" onclick="sel('.tone-btn',this,'tone','🎯 Директ')">🎯 Директ</button>
+    <button class="tone-btn" onclick="sel('.tone-btn',this,'tone','😄 Юмор')">😄 Юмор</button>
+    <button class="tone-btn" onclick="sel('.tone-btn',this,'tone','🤫 Интрига')">🤫 Интрига</button>
+  </div>
 
-    function json(obj, status = 200) {
-      return new Response(JSON.stringify(obj), {
-        status,
-        headers: {
-          ...cors(ORIGIN),
-          "Content-Type": "application/json"
-        }
-      });
-    }
+  <!-- DESIGN TEMPLATES -->
+  <div class="section-title">Шаблон дизайна</div>
+  <div class="tmpl-grid" id="tmplGrid"></div>
 
-    function cors(origin) {
-      return {
-        "Access-Control-Allow-Origin": origin,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
-      };
-    }
-  }
+  <!-- COLOR PALETTE -->
+  <div class="section-title">Палитра цветов</div>
+  <div class="palette-section">
+    <div class="palette-group">
+      <div class="palette-label">Фон</div>
+      <div class="color-row">
+        <div class="color-input-wrap" id="bgWrap"><input type="color" id="bgColor" value="#090f09" oninput="syncColor('bg')"></div>
+        <input type="text" class="color-hex" id="bgHex" value="#090F09" onchange="syncHex('bg')" maxlength="7">
+      </div>
+      <div class="preset-colors" id="bgPresets"></div>
+    </div>
+    <div class="palette-group">
+      <div class="palette-label">Акцент (текст, кнопки)</div>
+      <div class="color-row">
+        <div class="color-input-wrap" id="accentWrap"><input type="color" id="accentColor" value="#AAFF00" oninput="syncColor('accent')"></div>
+        <input type="text" class="color-hex" id="accentHex" value="#AAFF00" onchange="syncHex('accent')" maxlength="7">
+      </div>
+      <div class="preset-colors" id="accentPresets"></div>
+    </div>
+    <div class="palette-group">
+      <div class="palette-label">Текст основной</div>
+      <div class="color-row">
+        <div class="color-input-wrap" id="textWrap"><input type="color" id="textColor" value="#ffffff" oninput="syncColor('text')"></div>
+        <input type="text" class="color-hex" id="textHex" value="#FFFFFF" onchange="syncHex('text')" maxlength="7">
+      </div>
+      <div class="preset-colors" id="textPresets"></div>
+    </div>
+    <div class="palette-group">
+      <div class="palette-label">Зона бренда (фон)</div>
+      <div class="color-row">
+        <div class="color-input-wrap" id="brandWrap"><input type="color" id="brandColor" value="#ffffff" oninput="syncColor('brand')"></div>
+        <input type="text" class="color-hex" id="brandHex" value="#FFFFFF" onchange="syncHex('brand')" maxlength="7">
+      </div>
+      <div class="preset-colors" id="brandPresets"></div>
+    </div>
+  </div>
+
+  <div class="status-box error" id="errorBox"><span>⚠</span><span id="errorText"></span></div>
+  <div class="status-box loading" id="loadingBox"><div class="spinner"></div><span id="loadingText">Генерирую...</span></div>
+
+  <button class="gen-btn" id="genBtn" onclick="generate()">⚡ СГЕНЕРИРОВАТЬ 3 ВАРИАНТА КРЕО</button>
+
+  <div class="results" id="results">
+    <div class="results-header">— Результаты генерации —</div>
+    <div class="creatives-grid" id="creoCards"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOut(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">ВАРИАНТ 1</div>
+      <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-banner-wrap"><iframe id="modalIframe" srcdoc=""></iframe></div>
+      <div class="modal-text" id="modalText"></div>
+      <div class="modal-actions">
+        <button class="action-btn primary" onclick="dlBanner()">⬇ Скачать HTML</button>
+        <button class="action-btn" id="modalCopyBtn" onclick="copyModalTxt()">Копировать текст</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let state = {
+  tone: '🎯 Директ',
+  template: 'classic',
+  bg: '#090f09',
+  accent: '#AAFF00',
+  textCol: '#ffffff',
+  brandBg: '#ffffff',
 };
+let totalGens=0, totalCreos=0, generatedData=[], currentModal=0;
+
+/* ═══════════════════════════════════════════════════════
+   DESIGN TEMPLATES
+═══════════════════════════════════════════════════════ */
+const TEMPLATES = [
+  {
+    id:'classic',
+    name:'Классик',
+    thumb: (ac,bg) => `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="80" height="80" fill="${bg}"/>
+      <rect x="0" y="0" width="6" height="80" fill="${ac}"/>
+      <rect x="6" y="0" width="74" height="30" fill="rgba(255,255,255,0.9)"/>
+      <text x="40" y="20" text-anchor="middle" font-size="10" font-weight="900" fill="#111" font-family="sans-serif">BRAND</text>
+      <text x="12" y="46" font-size="8" font-weight="900" fill="${ac}" font-family="sans-serif">ЗАГОЛОВОК</text>
+      <rect x="12" y="52" width="24" height="3" fill="${ac}" opacity=".5"/>
+      <text x="12" y="62" font-size="5" fill="rgba(255,255,255,.7)" font-family="sans-serif">✓ Преимущество 1</text>
+      <text x="12" y="70" font-size="5" fill="rgba(255,255,255,.7)" font-family="sans-serif">✓ Преимущество 2</text>
+      <rect x="46" y="68" width="28" height="8" fill="${ac}"/>
+      <text x="60" y="74" text-anchor="middle" font-size="5" font-weight="900" fill="#000" font-family="sans-serif">→ CTA</text>
+    </svg>`
+  },
+  {
+    id:'split',
+    name:'Сплит',
+    thumb: (ac,bg) => `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="80" height="80" fill="${bg}"/>
+      <rect x="0" y="0" width="38" height="80" fill="rgba(255,255,255,0.93)"/>
+      <rect x="38" y="0" width="42" height="80" fill="${bg}"/>
+      <line x1="38" y1="0" x2="38" y2="80" stroke="${ac}" stroke-width="3"/>
+      <text x="19" y="28" text-anchor="middle" font-size="9" font-weight="900" fill="#111" font-family="sans-serif">BRAND</text>
+      <rect x="42" y="10" width="32" height="18" fill="${ac}" opacity=".15" rx="2"/>
+      <text x="58" y="22" text-anchor="middle" font-size="7" font-weight="900" fill="${ac}" font-family="sans-serif">HEADLINE</text>
+      <text x="42" y="38" font-size="5" fill="rgba(255,255,255,.7)" font-family="sans-serif">✓ Пункт 1</text>
+      <text x="42" y="47" font-size="5" fill="rgba(255,255,255,.7)" font-family="sans-serif">✓ Пункт 2</text>
+      <text x="42" y="56" font-size="5" fill="rgba(255,255,255,.7)" font-family="sans-serif">✓ Пункт 3</text>
+      <rect x="42" y="66" width="30" height="9" fill="${ac}"/>
+      <text x="57" y="73" text-anchor="middle" font-size="5" font-weight="900" fill="#000" font-family="sans-serif">→ CTA</text>
+    </svg>`
+  },
+  {
+    id:'diagonal',
+    name:'Диагональ',
+    thumb: (ac,bg) => `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="80" height="80" fill="${bg}"/>
+      <polygon points="0,0 80,0 80,45 0,60" fill="rgba(255,255,255,0.92)"/>
+      <text x="40" y="24" text-anchor="middle" font-size="10" font-weight="900" fill="#111" font-family="sans-serif">BRAND</text>
+      <text x="8" y="70" font-size="7" font-weight="900" fill="${ac}" font-family="sans-serif">ЗАГОЛОВОК</text>
+      <text x="8" y="58" font-size="4.5" fill="rgba(255,255,255,.65)" font-family="sans-serif">Подзаголовок текст</text>
+      <rect x="50" y="66" width="24" height="8" fill="${ac}"/>
+      <text x="62" y="72" text-anchor="middle" font-size="4.5" font-weight="900" fill="#000" font-family="sans-serif">CTA →</text>
+    </svg>`
+  },
+  {
+    id:'fullbrand',
+    name:'Полный',
+    thumb: (ac,bg) => `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="80" height="80" fill="${bg}"/>
+      <rect x="0" y="0" width="80" height="80" fill="${ac}" opacity=".07"/>
+      <rect x="8" y="8" width="64" height="20" fill="${ac}" opacity=".15" rx="2"/>
+      <text x="40" y="22" text-anchor="middle" font-size="9" font-weight="900" fill="${ac}" font-family="sans-serif">BRAND NAME</text>
+      <rect x="0" y="30" width="80" height="3" fill="${ac}" opacity=".3"/>
+      <text x="40" y="44" text-anchor="middle" font-size="7" font-weight="900" fill="white" font-family="sans-serif">ЗАГОЛОВОК</text>
+      <text x="40" y="53" text-anchor="middle" font-size="4.5" fill="rgba(255,255,255,.6)" font-family="sans-serif">Подзаголовок</text>
+      <text x="16" y="63" font-size="4" fill="rgba(255,255,255,.6)" font-family="sans-serif">✓ Пункт  ✓ Пункт  ✓ Пункт</text>
+      <rect x="22" y="68" width="36" height="8" fill="${ac}"/>
+      <text x="40" y="74" text-anchor="middle" font-size="5" font-weight="900" fill="#000" font-family="sans-serif">→ CTA</text>
+    </svg>`
+  },
+  {
+    id:'minimal',
+    name:'Минимал',
+    thumb: (ac,bg) => `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+      <rect width="80" height="80" fill="${bg}"/>
+      <rect x="0" y="34" width="80" height="2" fill="${ac}" opacity=".2"/>
+      <text x="40" y="22" text-anchor="middle" font-size="7" font-weight="400" fill="rgba(255,255,255,.4)" font-family="sans-serif" letter-spacing="4">BRAND</text>
+      <text x="40" y="50" text-anchor="middle" font-size="10" font-weight="900" fill="${ac}" font-family="sans-serif">HEADLINE</text>
+      <text x="40" y="60" text-anchor="middle" font-size="4.5" fill="rgba(255,255,255,.55)" font-family="sans-serif">Подзаголовок</text>
+      <rect x="28" y="66" width="24" height="1" fill="${ac}"/>
+      <text x="40" y="75" text-anchor="middle" font-size="4.5" fill="${ac}" font-family="sans-serif">→ CTA</text>
+    </svg>`
+  }
+];
+
+/* ═══════════════════════════════════════════════════════
+   PRESET COLORS
+═══════════════════════════════════════════════════════ */
+const BG_PRESETS    = ['#090f09','#0a0a0a','#050d1a','#0a0900','#1a0a00','#0d0014','#0a0a14','#14080a','#f5f5f0','#ffffff'];
+const ACCENT_PRESETS= ['#AAFF00','#FF4500','#00cfff','#FFD700','#ff0080','#00ff88','#ff6600','#a855f7','#ff3860','#00e5ff'];
+const TEXT_PRESETS  = ['#ffffff','#f0f0f0','#e8e8e8','#cccccc','#aaaaaa','#111111','#222222'];
+const BRAND_PRESETS = ['#ffffff','#f5f5f0','#fffbe6','#e8f4ff','#111111','#0a0a0a'];
+
+function buildPresets(containerId, colors, field) {
+  const c = document.getElementById(containerId);
+  colors.forEach(col => {
+    const d = document.createElement('div');
+    d.className = 'preset-dot';
+    d.style.background = col;
+    d.title = col;
+    d.onclick = () => applyColor(field, col);
+    c.appendChild(d);
+  });
+}
+
+function applyColor(field, val) {
+  val = val.toUpperCase();
+  const map = { bg:['bgColor','bgHex'], accent:['accentColor','accentHex'], text:['textColor','textHex'], brand:['brandColor','brandHex'] };
+  const stateMap = { bg:'bg', accent:'accent', text:'textCol', brand:'brandBg' };
+  document.getElementById(map[field][0]).value = val;
+  document.getElementById(map[field][1]).value = val;
+  state[stateMap[field]] = val;
+  refreshTmplThumbs();
+}
+
+function syncColor(field) {
+  const map = { bg:['bgColor','bgHex'], accent:['accentColor','accentHex'], text:['textColor','textHex'], brand:['brandColor','brandHex'] };
+  const stateMap = { bg:'bg', accent:'accent', text:'textCol', brand:'brandBg' };
+  const val = document.getElementById(map[field][0]).value.toUpperCase();
+  document.getElementById(map[field][1]).value = val;
+  state[stateMap[field]] = val;
+  refreshTmplThumbs();
+}
+
+function syncHex(field) {
+  const map = { bg:['bgColor','bgHex'], accent:['accentColor','accentHex'], text:['textColor','textHex'], brand:['brandColor','brandHex'] };
+  const stateMap = { bg:'bg', accent:'accent', text:'textCol', brand:'brandBg' };
+  let val = document.getElementById(map[field][1]).value;
+  if (!/^#/.test(val)) val = '#'+val;
+  document.getElementById(map[field][0]).value = val;
+  state[stateMap[field]] = val.toUpperCase();
+  refreshTmplThumbs();
+}
+
+/* ═══════════════════════════════════════════════════════
+   TEMPLATE GRID
+═══════════════════════════════════════════════════════ */
+function buildTmplGrid() {
+  const grid = document.getElementById('tmplGrid');
+  grid.innerHTML = '';
+  TEMPLATES.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'tmpl-btn' + (t.id === state.template ? ' active' : '');
+    btn.id = 'tmpl_' + t.id;
+    btn.innerHTML = `<div class="tmpl-thumb">${t.thumb(state.accent, state.bg)}</div><div class="tmpl-label">${t.name}</div>`;
+    btn.onclick = () => { state.template = t.id; document.querySelectorAll('.tmpl-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); };
+    grid.appendChild(btn);
+  });
+}
+
+function refreshTmplThumbs() {
+  TEMPLATES.forEach(t => {
+    const btn = document.getElementById('tmpl_' + t.id);
+    if (btn) btn.querySelector('.tmpl-thumb').innerHTML = t.thumb(state.accent, state.bg);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════ */
+function sel(selector, btn, field, val) {
+  document.querySelectorAll(selector).forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  state[field] = val;
+}
+function showError(m) { document.getElementById('errorText').textContent=m; document.getElementById('errorBox').style.display='flex'; document.getElementById('loadingBox').style.display='none'; }
+function showLoading(m) { document.getElementById('loadingText').textContent=m; document.getElementById('loadingBox').style.display='flex'; document.getElementById('errorBox').style.display='none'; }
+function hideStatus() { document.getElementById('loadingBox').style.display='none'; document.getElementById('errorBox').style.display='none'; }
+function escQ(s) { return s.replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function hexToRgb(hex) {
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '170,255,0';
+}
+
+function scaleIframe(iframe, w) { iframe.style.transform = `scale(${w/1080})`; }
+
+async function callClaude(prompt, maxTokens=1200) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:maxTokens, messages:[{role:'user',content:prompt}] })
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const d = await r.json();
+  return d.content?.map(b=>b.text||'').join('')||'';
+}
+
+/* ═══════════════════════════════════════════════════════
+   GENERATE
+═══════════════════════════════════════════════════════ */
+async function generate() {
+  const brand   = document.getElementById('brand').value.trim()||'БРЕНД';
+  const offer   = document.getElementById('offer').value.trim();
+  const utp     = document.getElementById('utp').value.trim();
+  const audience= document.getElementById('audience').value.trim();
+  const contact = document.getElementById('contact').value.trim();
+  const goal    = document.getElementById('goal').value.trim();
+  if (!offer) { showError('⚠ Заполни поле «Оффер»'); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true; generatedData = [];
+
+  showLoading('Генерирую тексты...');
+  const prompt = `Копирайтер для рекламных баннеров (финансы/крипто). Тон: ${state.tone}.
+
+Данные: Бренд: ${brand} | Оффер: ${offer} | УТП: ${utp} | ЦА: ${audience} | Цель: ${goal}
+
+Создай 3 разных варианта. Для каждого:
+- headline: 2-4 слова КАПСЛОК (без emoji, без знаков препинания)
+- sub: подзаголовок макс 45 символов
+- b1, b2, b3: три преимущества макс 28 символов каждый
+- cta: призыв 2-4 слова
+
+JSON без markdown:
+[{"headline":"...","sub":"...","b1":"...","b2":"...","b3":"...","cta":"..."},{"headline":"...","sub":"...","b1":"...","b2":"...","b3":"...","cta":"..."},{"headline":"...","sub":"...","b1":"...","b2":"...","b3":"...","cta":"..."}]`;
+
+  let copies;
+  try {
+    const raw = await callClaude(prompt);
+    copies = JSON.parse(raw.replace(/```json|```/g,'').trim());
+  } catch(e) {
+    showError('⚠ Ошибка: ' + e.message);
+    btn.disabled = false; return;
+  }
+
+  showLoading('Рендерю баннеры...');
+
+  const s = { bg: state.bg, accent: state.accent, text: state.textCol, brandBg: state.brandBg, rgb: hexToRgb(state.accent) };
+  const tmplId = state.template;
+  const tmplName = TEMPLATES.find(t=>t.id===tmplId)?.name || tmplId;
+
+  generatedData = copies.map((c,i) => ({
+    copy: c,
+    tmpl: tmplName,
+    html: makeBanner(c, i, s, brand, contact, tmplId)
+  }));
+
+  renderResults();
+  totalGens++; totalCreos+=3;
+  document.getElementById('genCount').textContent = totalGens;
+  document.getElementById('creoCount').textContent = totalCreos;
+  hideStatus();
+  btn.disabled = false;
+}
+
+/* ═══════════════════════════════════════════════════════
+   BANNER TEMPLATES
+═══════════════════════════════════════════════════════ */
+function makeChart(rgb, idx) {
+  const datasets = [
+    [[38,65,34,62],[62,86,58,83],[80,96,76,93],[92,116,86,113],[110,133,104,128],[126,150,120,146],[143,166,138,163],[158,176,152,173]],
+    [[68,88,63,86],[83,103,78,100],[98,120,93,116],[116,136,110,133],[133,156,128,152],[148,170,143,166],[163,180,156,178],[176,193,170,190]],
+    [[53,73,48,70],[70,90,65,87],[86,106,81,103],[102,123,97,120],[118,140,113,136],[134,156,128,153],[148,168,142,165],[161,180,155,177]],
+  ];
+  const bars = datasets[idx % 3];
+  let svg = ''; let pts = [];
+  bars.forEach((bar,i) => {
+    const [o,h,l,c] = bar; const scale=3.5; const x=120+i*115;
+    const yo=1080-o*scale,yh=1080-h*scale,yl=1080-l*scale,yc=1080-c*scale;
+    const bull=c>=o; const col=bull?`rgba(${rgb},.85)`:'rgba(255,80,80,.75)';
+    const bTop=Math.min(yo,yc), bH=Math.max(Math.abs(yc-yo),5);
+    svg+=`<line x1="${x}" y1="${yh}" x2="${x}" y2="${yl}" stroke="${col}" stroke-width="4"/>`;
+    svg+=`<rect x="${x-32}" y="${bTop}" width="64" height="${bH}" fill="${col}" rx="3"/>`;
+    pts.push(`${i===0?'M':'L'} ${x} ${(yo+yc)/2}`);
+  });
+  return { candles: svg, line: pts.join(' ') };
+}
+
+function makeBanner(c, idx, s, brand, contact, tmplId) {
+  const chart = makeChart(s.rgb, idx);
+  const icon = contact.startsWith('@') ? '✈' : '🌐';
+  const brandTextColor = s.brandBg === '#ffffff' || s.brandBg === '#f5f5f0' || s.brandBg === '#fffbe6' || s.brandBg === '#e8f4ff' ? '#111111' : s.text;
+
+  const chartSVG = `<svg viewBox="0 0 1080 1080" width="1080" height="1080" xmlns="http://www.w3.org/2000/svg">
+    ${chart.candles}
+    <path d="${chart.line}" stroke="rgba(${s.rgb},.5)" stroke-width="5" fill="none" stroke-linejoin="round"/>
+  </svg>`;
+
+  const commonHead = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:1080px;height:1080px;overflow:hidden;background:${s.bg}}</style>
+</head><body>`;
+
+  if (tmplId === 'classic') return commonHead + `
+<style>
+.chart{position:absolute;inset:0;opacity:.15}.chart svg{width:1080px;height:1080px}
+.grad{position:absolute;inset:0;background:linear-gradient(to bottom,${s.bg}bb 0%,transparent 20%,transparent 50%,${s.bg}ee 72%,${s.bg} 100%),linear-gradient(to right,${s.bg} 0%,transparent 10%)}
+.stripe{position:absolute;left:0;top:0;width:12px;height:100%;background:${s.accent}}
+.brand-zone{position:absolute;top:0;left:12px;right:0;height:320px;background:${s.brandBg};clip-path:polygon(0 0,100% 0,100% 82%,0 100%);display:flex;align-items:center;justify-content:center;z-index:5;animation:sd .5s ease both}
+@keyframes sd{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+.brand-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:100px;color:${brandTextColor};letter-spacing:-3px;text-transform:uppercase;line-height:1;padding:0 40px;text-align:center}
+.top-badge{position:absolute;top:22px;right:26px;border:3px solid ${s.accent};padding:8px 20px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${s.accent};background:${s.bg};z-index:20;animation:fi .4s .3s ease both;opacity:0}
+.headline{position:absolute;top:290px;left:28px;right:24px;font-family:'Barlow Condensed',sans-serif;font-size:108px;font-weight:900;line-height:.92;text-transform:uppercase;color:${s.accent};letter-spacing:-2px;text-shadow:0 0 60px ${s.accent}44;z-index:10;animation:su .5s .2s ease both;opacity:0}
+@keyframes su{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.sub{position:absolute;top:578px;left:28px;right:24px;font-family:'Roboto',sans-serif;font-size:30px;color:rgba(255,255,255,.75);line-height:1.35;z-index:10;animation:fi .5s .42s ease both;opacity:0}
+.divider{position:absolute;top:640px;left:28px;width:80px;height:4px;background:${s.accent};z-index:10;animation:fi .4s .5s ease both;opacity:0}
+.benefits{position:absolute;top:660px;left:28px;display:flex;flex-direction:column;gap:16px;z-index:10;animation:fi .5s .52s ease both;opacity:0}
+.benefit{display:flex;align-items:center;gap:16px}
+.chk{width:34px;height:34px;flex-shrink:0;background:${s.accent};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#000}
+.bt{font-family:'Roboto',sans-serif;font-size:28px;color:${s.text};opacity:.88}
+.cta{position:absolute;bottom:54px;right:28px;background:${s.accent};color:#000;font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:18px 44px;border:none;z-index:10;animation:fi .5s .65s ease both,pulse 2s 1.6s ease-in-out infinite;opacity:0}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 ${s.accent}55}50%{box-shadow:0 0 0 18px ${s.accent}00}}
+.contact{position:absolute;bottom:64px;left:28px;display:flex;align-items:center;gap:12px;font-family:'Roboto',sans-serif;font-size:24px;color:rgba(255,255,255,.5);z-index:10;animation:fi .4s .7s ease both;opacity:0}
+@keyframes fi{to{opacity:1}}
+</style>
+<div class="chart">${chartSVG}</div>
+<div class="grad"></div><div class="stripe"></div>
+<div class="brand-zone"><div class="brand-text">${brand}</div></div>
+<div class="top-badge">КРИПТО</div>
+<div class="headline">${c.headline}</div>
+<div class="sub">${c.sub}</div>
+<div class="divider"></div>
+<div class="benefits">
+  <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b1}</div></div>
+  <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b2}</div></div>
+  <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b3}</div></div>
+</div>
+<div class="cta">→ ${c.cta}</div>
+<div class="contact"><span>${icon}</span><span>${contact}</span></div>
+</body></html>`;
+
+  if (tmplId === 'split') return commonHead + `
+<style>
+.chart{position:absolute;inset:0;opacity:.12}.chart svg{width:1080px;height:1080px}
+.left{position:absolute;top:0;left:0;width:420px;height:1080px;background:${s.brandBg};z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:50px 40px}
+.brand-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:72px;color:${brandTextColor};letter-spacing:-2px;text-transform:uppercase;line-height:1;text-align:center;animation:sd .5s ease both}
+@keyframes sd{from{opacity:0;transform:translateX(-16px)}to{opacity:1;transform:translateX(0)}}
+.left-sub{font-family:'Roboto',sans-serif;font-size:22px;color:${brandTextColor};opacity:.55;text-align:center;line-height:1.4}
+.left-badge{background:${s.accent};color:#000;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;letter-spacing:2px;padding:12px 28px;text-transform:uppercase;animation:fi .4s .3s ease both;opacity:0}
+.divider-v{position:absolute;top:0;left:420px;width:8px;height:100%;background:${s.accent};z-index:10}
+.right{position:absolute;top:0;left:428px;right:0;height:1080px;display:flex;flex-direction:column;justify-content:center;padding:60px 50px;gap:36px;z-index:6}
+.headline{font-family:'Barlow Condensed',sans-serif;font-size:90px;font-weight:900;line-height:.9;text-transform:uppercase;color:${s.accent};letter-spacing:-2px;text-shadow:0 0 50px ${s.accent}33;animation:su .5s .2s ease both;opacity:0}
+@keyframes su{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.sub{font-family:'Roboto',sans-serif;font-size:26px;color:${s.text};opacity:.7;line-height:1.35;animation:fi .5s .4s ease both;opacity:0}
+.benefits{display:flex;flex-direction:column;gap:18px;animation:fi .5s .52s ease both;opacity:0}
+.benefit{display:flex;align-items:center;gap:16px}
+.chk{width:34px;height:34px;flex-shrink:0;background:${s.accent};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#000}
+.bt{font-family:'Roboto',sans-serif;font-size:26px;color:${s.text};opacity:.88}
+.bottom-row{display:flex;align-items:center;justify-content:space-between;animation:fi .5s .65s ease both;opacity:0}
+.cta{background:${s.accent};color:#000;font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:16px 40px;border:none;animation:pulse 2s 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 ${s.accent}55}50%{box-shadow:0 0 0 16px ${s.accent}00}}
+.contact{font-family:'Roboto',sans-serif;font-size:22px;color:${s.text};opacity:.45}
+@keyframes fi{to{opacity:1}}
+</style>
+<div class="chart">${chartSVG}</div>
+<div class="left">
+  <div class="brand-text">${brand}</div>
+  <div class="left-sub">${c.sub}</div>
+  <div class="left-badge">КРИПТО</div>
+</div>
+<div class="divider-v"></div>
+<div class="right">
+  <div class="headline">${c.headline}</div>
+  <div class="benefits">
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b1}</div></div>
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b2}</div></div>
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b3}</div></div>
+  </div>
+  <div class="bottom-row">
+    <div class="contact">${icon} ${contact}</div>
+    <button class="cta">→ ${c.cta}</button>
+  </div>
+</div>
+</body></html>`;
+
+  if (tmplId === 'diagonal') return commonHead + `
+<style>
+.chart{position:absolute;inset:0;opacity:.13}.chart svg{width:1080px;height:1080px}
+.grad{position:absolute;inset:0;background:linear-gradient(160deg,${s.bg} 0%,transparent 50%,${s.bg}cc 100%)}
+.brand-zone{position:absolute;top:0;left:0;right:0;height:380px;background:${s.brandBg};clip-path:polygon(0 0,100% 0,100% 70%,0 100%);display:flex;align-items:center;justify-content:center;z-index:5;animation:sd .5s ease both}
+@keyframes sd{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+.brand-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:96px;color:${brandTextColor};letter-spacing:-3px;text-transform:uppercase;line-height:1}
+.stripe-diag{position:absolute;top:0;left:0;width:100%;height:12px;background:${s.accent};z-index:10}
+.badge-tl{position:absolute;top:20px;left:28px;background:${s.accent};color:#000;font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:900;letter-spacing:2px;padding:8px 20px;text-transform:uppercase;z-index:20;animation:fi .4s .3s ease both;opacity:0}
+.headline{position:absolute;bottom:230px;left:28px;right:24px;font-family:'Barlow Condensed',sans-serif;font-size:116px;font-weight:900;line-height:.88;text-transform:uppercase;color:${s.accent};letter-spacing:-2px;text-shadow:0 0 70px ${s.accent}44;z-index:10;animation:su .5s .2s ease both;opacity:0}
+@keyframes su{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.sub{position:absolute;bottom:184px;left:28px;font-family:'Roboto',sans-serif;font-size:28px;color:${s.text};opacity:.7;z-index:10;animation:fi .5s .42s ease both;opacity:0}
+.bottom-bar{position:absolute;bottom:0;left:0;right:0;height:160px;background:${s.accent}18;border-top:3px solid ${s.accent}44;display:flex;align-items:center;justify-content:space-between;padding:0 40px;z-index:10;animation:fi .5s .5s ease both;opacity:0}
+.benefits-row{display:flex;gap:36px}
+.benefit{display:flex;align-items:center;gap:10px}
+.chk{width:28px;height:28px;flex-shrink:0;background:${s.accent};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#000}
+.bt{font-family:'Roboto',sans-serif;font-size:22px;color:${s.text};opacity:.85}
+.cta{background:${s.accent};color:#000;font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;letter-spacing:2px;text-transform:uppercase;padding:16px 36px;border:none;white-space:nowrap;animation:pulse 2s 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 ${s.accent}55}50%{box-shadow:0 0 0 16px ${s.accent}00}}
+.contact{position:absolute;bottom:168px;right:28px;font-family:'Roboto',sans-serif;font-size:22px;color:${s.text};opacity:.45;z-index:10;animation:fi .4s .7s ease both;opacity:0}
+@keyframes fi{to{opacity:1}}
+</style>
+<div class="chart">${chartSVG}</div>
+<div class="grad"></div>
+<div class="stripe-diag"></div>
+<div class="brand-zone"><div class="brand-text">${brand}</div></div>
+<div class="badge-tl">КРИПТО</div>
+<div class="headline">${c.headline}</div>
+<div class="sub">${c.sub}</div>
+<div class="contact">${icon} ${contact}</div>
+<div class="bottom-bar">
+  <div class="benefits-row">
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b1}</div></div>
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b2}</div></div>
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b3}</div></div>
+  </div>
+  <button class="cta">→ ${c.cta}</button>
+</div>
+</body></html>`;
+
+  if (tmplId === 'fullbrand') return commonHead + `
+<style>
+.chart{position:absolute;inset:0;opacity:.12}.chart svg{width:1080px;height:1080px}
+.grad{position:absolute;inset:0;background:radial-gradient(ellipse at 70% 30%,${s.accent}18 0%,transparent 60%)}
+.top-bar{position:absolute;top:0;left:0;right:0;height:8px;background:${s.accent}}
+.brand-block{position:absolute;top:50px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:0;z-index:6;animation:sd .5s ease both;opacity:0}
+@keyframes sd{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.brand-text{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:88px;color:${s.accent};letter-spacing:6px;text-transform:uppercase;line-height:1;text-align:center}
+.brand-under{width:200px;height:4px;background:${s.accent};margin:10px auto 0}
+.badge-center{background:${s.accent}22;border:2px solid ${s.accent}55;color:${s.accent};font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:3px;padding:6px 24px;text-transform:uppercase;margin-top:14px}
+.center-block{position:absolute;top:280px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:20px;padding:0 60px;z-index:6}
+.sep{width:100%;height:2px;background:${s.accent}33}
+.headline{font-family:'Barlow Condensed',sans-serif;font-size:110px;font-weight:900;line-height:.9;text-transform:uppercase;color:${s.text};letter-spacing:-2px;text-align:center;text-shadow:0 0 60px ${s.accent}44;animation:su .5s .2s ease both;opacity:0}
+@keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.sub{font-family:'Roboto',sans-serif;font-size:28px;color:${s.text};opacity:.65;text-align:center;animation:fi .5s .4s ease both;opacity:0}
+.benefits-center{display:flex;gap:50px;justify-content:center;animation:fi .5s .52s ease both;opacity:0}
+.benefit{display:flex;align-items:center;gap:12px}
+.chk{width:32px;height:32px;flex-shrink:0;background:${s.accent};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#000}
+.bt{font-family:'Roboto',sans-serif;font-size:24px;color:${s.text};opacity:.88}
+.cta-wrap{animation:fi .5s .65s ease both;opacity:0}
+.cta{background:${s.accent};color:#000;font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:900;letter-spacing:3px;text-transform:uppercase;padding:20px 60px;border:none;animation:pulse 2s 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 ${s.accent}55}50%{box-shadow:0 0 0 20px ${s.accent}00}}
+.bottom-bar{position:absolute;bottom:0;left:0;right:0;height:60px;background:${s.accent}15;border-top:2px solid ${s.accent}33;display:flex;align-items:center;justify-content:center;z-index:10;animation:fi .4s .7s ease both;opacity:0}
+.contact{font-family:'Roboto',sans-serif;font-size:24px;color:${s.text};opacity:.5}
+@keyframes fi{to{opacity:1}}
+</style>
+<div class="chart">${chartSVG}</div>
+<div class="grad"></div>
+<div class="top-bar"></div>
+<div class="brand-block">
+  <div class="brand-text">${brand}</div>
+  <div class="brand-under"></div>
+  <div class="badge-center">КРИПТО · ОБМЕН · ПЕРЕВОДЫ</div>
+</div>
+<div class="center-block">
+  <div class="sep"></div>
+  <div class="headline">${c.headline}</div>
+  <div class="sub">${c.sub}</div>
+  <div class="sep"></div>
+  <div class="benefits-center">
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b1}</div></div>
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b2}</div></div>
+    <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b3}</div></div>
+  </div>
+  <div class="cta-wrap"><button class="cta">→ ${c.cta}</button></div>
+</div>
+<div class="bottom-bar"><div class="contact">${icon} ${contact}</div></div>
+</body></html>`;
+
+  if (tmplId === 'minimal') return commonHead + `
+<style>
+.chart{position:absolute;inset:0;opacity:.08}.chart svg{width:1080px;height:1080px}
+.grad{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,${s.accent}0a 0%,transparent 70%)}
+.hl{position:absolute;top:50%;left:0;right:0;height:1px;background:${s.accent};opacity:.2;transform:translateY(-50%)}
+.vl{position:absolute;left:50%;top:0;bottom:0;width:1px;background:${s.accent};opacity:.1}
+.brand-tag{position:absolute;top:80px;left:0;right:0;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:400;letter-spacing:12px;text-transform:uppercase;color:${s.accent};opacity:.7;z-index:6;animation:fi .5s ease both;opacity:0}
+.brand-name{position:absolute;top:110px;left:0;right:0;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:86px;font-weight:900;letter-spacing:-2px;text-transform:uppercase;color:${s.text};z-index:6;animation:sd .5s .1s ease both;opacity:0}
+@keyframes sd{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.line-h{position:absolute;top:256px;left:80px;right:80px;height:2px;background:${s.accent};opacity:.4;z-index:6;animation:fi .4s .3s ease both;opacity:0}
+.headline{position:absolute;top:286px;left:0;right:0;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:128px;font-weight:900;line-height:.88;text-transform:uppercase;color:${s.accent};letter-spacing:-3px;text-shadow:0 0 80px ${s.accent}55;z-index:6;animation:su .5s .25s ease both;opacity:0}
+@keyframes su{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.sub{position:absolute;top:540px;left:0;right:0;text-align:center;font-family:'Roboto',sans-serif;font-size:26px;color:${s.text};opacity:.55;z-index:6;animation:fi .5s .45s ease both;opacity:0}
+.line-h2{position:absolute;top:596px;left:80px;right:80px;height:1px;background:${s.accent};opacity:.25;z-index:6;animation:fi .4s .55s ease both;opacity:0}
+.benefits-row{position:absolute;top:628px;left:0;right:0;display:flex;justify-content:center;gap:70px;z-index:6;animation:fi .5s .6s ease both;opacity:0}
+.benefit{display:flex;align-items:center;gap:12px}
+.chk{width:28px;height:28px;border:2px solid ${s.accent};display:flex;align-items:center;justify-content:center;font-size:14px;color:${s.accent};font-weight:900}
+.bt{font-family:'Roboto',sans-serif;font-size:22px;color:${s.text};opacity:.8}
+.cta-area{position:absolute;bottom:100px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:16px;z-index:6;animation:fi .5s .7s ease both;opacity:0}
+.cta-line{width:2px;height:40px;background:${s.accent};opacity:.6}
+.cta{background:transparent;border:2px solid ${s.accent};color:${s.accent};font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;letter-spacing:4px;text-transform:uppercase;padding:16px 60px;cursor:default;animation:pulse 2s 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 ${s.accent}44}50%{box-shadow:0 0 0 16px ${s.accent}00}}
+.contact{position:absolute;bottom:46px;left:0;right:0;text-align:center;font-family:'Roboto',sans-serif;font-size:20px;color:${s.text};opacity:.35;z-index:6;animation:fi .4s .75s ease both;opacity:0}
+@keyframes fi{to{opacity:1}}
+</style>
+<div class="chart">${chartSVG}</div>
+<div class="grad"></div>
+<div class="hl"></div><div class="vl"></div>
+<div class="brand-tag">— CRYPTO —</div>
+<div class="brand-name">${brand}</div>
+<div class="line-h"></div>
+<div class="headline">${c.headline}</div>
+<div class="sub">${c.sub}</div>
+<div class="line-h2"></div>
+<div class="benefits-row">
+  <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b1}</div></div>
+  <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b2}</div></div>
+  <div class="benefit"><div class="chk">✓</div><div class="bt">${c.b3}</div></div>
+</div>
+<div class="cta-area"><div class="cta-line"></div><button class="cta">→ ${c.cta}</button></div>
+<div class="contact">${icon} ${contact}</div>
+</body></html>`;
+
+  return commonHead + `<div style="color:#fff;padding:40px;font-size:40px">Шаблон не найден</div></body></html>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════════════════ */
+function renderResults() {
+  const cont = document.getElementById('creoCards');
+  cont.innerHTML = '';
+  generatedData.forEach((item, i) => {
+    const ft = `${item.copy.headline}\n${item.copy.sub}\n\n✓ ${item.copy.b1}\n✓ ${item.copy.b2}\n✓ ${item.copy.b3}\n\n→ ${item.copy.cta}`;
+    const card = document.createElement('div');
+    card.className = 'creative-card';
+    card.innerHTML = `
+      <div class="card-label">// ВАРИАНТ ${i+1}</div>
+      <div class="tmpl-tag">${item.tmpl}</div>
+      <div class="banner-preview" id="prev${i}">
+        <iframe id="ifr${i}" srcdoc="${escQ(item.html)}" scrolling="no"></iframe>
+      </div>
+      <div class="card-copy">
+        <div class="copy-headline">${item.copy.headline}</div>
+        <div class="copy-sub">${item.copy.sub}</div>
+        <div class="card-actions">
+          <button class="action-btn primary" onclick="openModal(${i})">Открыть</button>
+          <button class="action-btn" onclick="cpTxt(this,\`${ft.replace(/`/g,'\\`')}\`)">Копировать</button>
+          <button class="action-btn" onclick="dlHTML(${i})">HTML ⬇</button>
+        </div>
+      </div>`;
+    cont.appendChild(card);
+  });
+  requestAnimationFrame(() => {
+    generatedData.forEach((_,i) => {
+      const p = document.getElementById(`prev${i}`);
+      const f = document.getElementById(`ifr${i}`);
+      if (p && f) scaleIframe(f, p.offsetWidth);
+    });
+  });
+  window.addEventListener('resize', () => {
+    generatedData.forEach((_,i) => {
+      const p = document.getElementById(`prev${i}`);
+      const f = document.getElementById(`ifr${i}`);
+      if (p && f) scaleIframe(f, p.offsetWidth);
+    });
+  });
+  const r = document.getElementById('results');
+  r.classList.add('visible');
+  r.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function openModal(idx) {
+  currentModal = idx;
+  const item = generatedData[idx];
+  document.getElementById('modalTitle').textContent = `ВАРИАНТ ${idx+1} — ${item.tmpl}`;
+  const mf = document.getElementById('modalIframe');
+  mf.srcdoc = item.html;
+  document.getElementById('modalText').textContent =
+    `${item.copy.headline}\n${item.copy.sub}\n\n✓ ${item.copy.b1}\n✓ ${item.copy.b2}\n✓ ${item.copy.b3}\n\n→ ${item.copy.cta}`;
+  document.getElementById('modal').classList.add('open');
+  requestAnimationFrame(() => {
+    const w = document.querySelector('.modal-banner-wrap');
+    if (w) scaleIframe(mf, w.offsetWidth);
+  });
+}
+function closeModalOut(e) { if (e.target.id==='modal') document.getElementById('modal').classList.remove('open'); }
+function dlBanner() { dlHTML(currentModal); }
+function dlHTML(idx) {
+  const b = new Blob([generatedData[idx].html],{type:'text/html'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`banner-v${idx+1}.html`; a.click();
+}
+function cpTxt(btn, text) {
+  navigator.clipboard.writeText(text).then(()=>{
+    const o=btn.textContent; btn.textContent='✓ OK'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=o;btn.classList.remove('copied');},2000);
+  });
+}
+function copyModalTxt() {
+  const t = document.getElementById('modalText').textContent;
+  navigator.clipboard.writeText(t).then(()=>{
+    const b=document.getElementById('modalCopyBtn'); b.textContent='✓ Скопировано';
+    setTimeout(()=>b.textContent='Копировать текст',2000);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+buildTmplGrid();
+buildPresets('bgPresets',     BG_PRESETS,     'bg');
+buildPresets('accentPresets', ACCENT_PRESETS, 'accent');
+buildPresets('textPresets',   TEXT_PRESETS,   'text');
+buildPresets('brandPresets',  BRAND_PRESETS,  'brand');
+</script>
+</body>
+</html>
